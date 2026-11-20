@@ -33,17 +33,5 @@ def _is_plural(word: str) -> bool:
     return word.endswith("s") and not word.endswith(("ss", "us", "is"))
 
 
-@lru_cache(maxsize=1)
-def load() -> Lexicon:
-    rows = [line.split("\t") for line in (DATA / "freq.tsv").read_text().splitlines()]
-    words = [w for w, _ in rows]
-    zipf = np.array([float(z) for _, z in rows])
-    plural = np.array([_is_plural(w) for w in words])
-    # Smooth step: common words ~1, rare words ~0, plurals heavily discounted.
-    prior = 1.0 / (1.0 + np.exp(-2.0 * (zipf - ANSWER_ZIPF)))
-    prior = np.where(plural, prior * 0.05, prior)
 
-    letters = np.frombuffer("".join(words).encode(), dtype=np.uint8).reshape(-1, 5) - ord("a")
-    answer_pool = np.flatnonzero((zipf >= ANSWER_ZIPF) & ~plural)
-    return Lexicon(words, {w: i for i, w in enumerate(words)}, letters, zipf, prior, answer_pool)
 
